@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import joblib
+import plotly.graph_objects as go
 
 # Cargar modelo entrenado
 model = joblib.load("modelo_svm.pkl")
@@ -8,27 +9,37 @@ model = joblib.load("modelo_svm.pkl")
 # Configuración de página
 st.set_page_config(page_title="Riesgo de Incendios", page_icon="🔥", layout="centered")
 
-# Título con emoji
 st.title("🔥 Predicción de Riesgo de Incendios")
 st.markdown("Esta app predice si un mes presenta **riesgo bajo** o **riesgo moderado/alto** de incendio, basado en datos climáticos.")
 
-# Línea separadora
 st.markdown("---")
-
-# 🎛️ Sliders de entrada
 st.header("🌦️ Ingresá los valores climáticos")
 
-rh = st.slider("Humedad Relativa (%)", min_value=20, max_value=100, value=50, step=1)
-wspd = st.slider("Velocidad del Viento (km/h)", min_value=0, max_value=40, value=15, step=1)
-temp = st.slider("Temperatura (°C)", min_value=0, max_value=45, value=25, step=1)
+rh = st.slider("Humedad Relativa (%)", 20, 100, 50)
+wspd = st.slider("Velocidad del Viento (km/h)", 0, 40, 15)
+temp = st.slider("Temperatura (°C)", 0, 45, 25)
 
-# Línea separadora
+st.markdown("---")
+st.subheader("📊 Radar de variables ingresadas")
+
+fig = go.Figure(data=go.Scatterpolar(
+    r=[rh, wspd, temp],
+    theta=['Humedad', 'Viento', 'Temperatura'],
+    fill='toself'
+))
+fig.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=False)
+st.plotly_chart(fig)
+
 st.markdown("---")
 
-# Botón de predicción
 if st.button("🔍 Predecir Riesgo"):
     X_input = np.array([[rh, wspd, temp]])
     pred = model.predict(X_input)[0]
+
+    if hasattr(model, "predict_proba"):
+        prob = model.predict_proba(X_input)[0][1]
+    else:
+        prob = "No disponible"
 
     if pred == 1:
         st.error("⚠️ Riesgo Predicho: **MODERADO/ALTO**")
@@ -37,7 +48,26 @@ if st.button("🔍 Predecir Riesgo"):
         st.success("✅ Riesgo Predicho: **BAJO**")
         st.markdown("Condiciones estables, sin alerta de riesgo alto.")
 
-# Footer
+    st.markdown(f"**Probabilidad de riesgo:** {prob if isinstance(prob, str) else f'{prob:.2%}'}")
+
+    if 'historial' not in st.session_state:
+        st.session_state.historial = []
+
+    st.session_state.historial.append({
+        'Humedad': rh,
+        'Viento': wspd,
+        'Temperatura': temp,
+        'Predicción': 'MOD/ALTO' if pred == 1 else 'BAJO',
+        'Probabilidad': prob if isinstance(prob, str) else round(prob, 4)
+    })
+
+st.markdown("---")
+
+if 'historial' in st.session_state and st.session_state.historial:
+    st.subheader("🕘 Historial de Predicciones")
+    st.dataframe(st.session_state.historial)
+
 st.markdown("---")
 st.caption("Desarrollado por Dana Angellotti • Modelo SVM ajustado • Streamlit App")
+
 
