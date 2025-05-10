@@ -86,7 +86,7 @@ with tab2:
             st.success("✅ Historial exportado como historial_predicciones.csv")
 
 st.markdown("---")
-st.caption("Desarrollado por Dana Angellotti • Modelo SVM ajustado • Streamlit App con interfaz extendida")
+st.caption("Desarrollado por Dana Angellotti • Modelo SVM ajustado • Streamlit App con interfaz extendidaa")
 
 
 
